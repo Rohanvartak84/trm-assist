@@ -74,7 +74,7 @@ async function search(){
  }catch(e){sourceSearch();const notice=document.createElement('div');notice.className='notice';notice.setAttribute('role','alert');notice.textContent=e.name==='TimeoutError'?'The AI request timed out. Try again.':e.message;$('results').prepend(notice);$('result-count').textContent='AI unavailable · source search shown';}
  finally{lock(false)}
 }
-async function checkAI(){try{const r=await fetch('/api/status');if(!r.ok)throw new Error();const data=await r.json();$('ai-status').textContent=data.configured?'AI configured · '+data.model:'Backend ready · API key not configured';}catch{$('ai-status').textContent='Could not check AI connection';}}
+async function checkAI(){try{const r=await fetch('/api/status');if(!r.ok)throw new Error();const data=await r.json();$('ai-status').textContent=data.configured?'AI binding ready · '+data.model:'Backend ready · Workers AI binding missing';}catch{$('ai-status').textContent='Could not check AI connection';}}
 $('source-search').onclick=()=>{if(!busy)sourceSearch()};
 checkAI();
 $('query-form').onsubmit=e=>{e.preventDefault();if(!busy)search()};

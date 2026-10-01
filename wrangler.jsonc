@@ -5,7 +5,18 @@
   "compatibility_date": "2026-09-01",
   "workers_dev": true,
   "preview_urls": false,
-  "assets": {"directory": "./public", "binding": "ASSETS", "run_worker_first": true},
-  "vars": { "OPENAI_MODEL": "gpt-4.1-mini" },
-  "observability": { "enabled": false }
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "vars": {
+    "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+  },
+  "observability": {
+    "enabled": false
+  },
+  "ai": {
+    "binding": "AI"
+  }
 }

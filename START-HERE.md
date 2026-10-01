@@ -1,101 +1,68 @@
-# Register Lens — deploy to your Cloudflare account
+# Register Lens — Complete Cloudflare Workers AI project
 
-This package contains the full website and AI backend. It does not contain your API key and has not yet been deployed to your account. Your existing ChatGPT-hosted site is unchanged.
+This version uses Meta Llama 3.3 70B hosted by Cloudflare. No OpenAI API key is needed. Your PC does not need to run the model.
 
-## 1. Extract and open a terminal
+## Deploy the complete project
 
-Install Node.js 22 or newer if needed: https://nodejs.org/en/download
+This ZIP contains the entire website, backend, PDF.js assets, sample PDFs, configuration and tests. It is not an update-only archive.
 
-Extract the ZIP. Open the `register-lens-cloudflare` folder containing `package.json` and `wrangler.jsonc` in VS Code, then choose Terminal → New Terminal. These commands work in a terminal on Windows, macOS or Linux.
+1. Extract the ZIP on your computer.
+2. Add the extracted contents to your GitHub repository root. package.json and wrangler.jsonc must be at the root, alongside public/, worker/ and tests/. Do not upload the ZIP itself or add an extra containing folder.
+3. For the complete project, use GitHub Desktop: clone your repository, copy the extracted contents into that local repository, review changes, commit, and push. There are over 100 files, so browser uploads require multiple batches while preserving folder paths. Do not commit node_modules or real secret files.
+4. In Cloudflare Workers & Pages, connect the GitHub repository if it is not already connected. Use Worker name register-lens, branch main, root repository directory, an empty build command, and deploy command npx wrangler deploy. Do not use the static ZIP uploader.
+5. Keep your existing ACCESS_PASSWORD secret. If missing, add ACCESS_PASSWORD as a Secret under your Worker’s Settings → Variables and Secrets. Use a unique password of at least 20 ASCII characters, then deploy the change.
+6. Open your Cloudflare website. Username: registerlens. Password: the ACCESS_PASSWORD you set.
+7. The status should show “AI binding ready”. Click Ask AI with the sample question and check for an answer with a clickable supporting citation. Then test your own manual.
 
-## 2. Install and sign in
+## Optional command-line deployment
 
-Run these commands one at a time:
+With Node.js 22 or later installed, run these from the extracted project directory:
 
-```sh
-npm install
+```bash
+npm ci
+npm test
 npx wrangler login
-```
-
-The second command opens Cloudflare sign-in. Choose your account and authorize Wrangler. If your account already has an unrelated Worker named `register-lens`, change the `name` in `wrangler.jsonc` before continuing so it is not overwritten.
-
-## 3. Deploy the protected application
-
-```sh
+npx wrangler secret put ACCESS_PASSWORD
 npm run deploy
 ```
 
-If prompted, select your Cloudflare account and configure a workers.dev subdomain. Copy the HTTPS URL printed at the end. The website initially displays “Setup incomplete” and denies access until you configure the access password; it does not expose the app or model endpoint during setup.
+If Wrangler asks to create the Worker while setting the secret, accept. No OpenAI key is required. Real inference runs in your Cloudflare account and consumes its AI allowance.
 
-## 4. Add the two secrets — this is where your API key goes
+The wrangler configuration adds an AI binding named AI automatically. No separate model key is required. An old OPENAI_API_KEY secret is unused and can be removed. OPENAI_MODEL is also unused. Do not change the Worker name if your existing deployment is named register-lens.
 
-Use either method A or method B. Do not put real secret values in source files or chat.
+## Free usage
 
-### A. Cloudflare dashboard
+Cloudflare Workers AI includes 10,000 neurons of usage per day, not 10,000 questions. On Workers Free, calls fail once the allowance is exhausted, until the next reset at 00:00 UTC (05:30 India time). If your account is on Workers Paid, usage above the allowance is billable; this app does not enforce a separate spending cap. Monitor the Workers AI dashboard.
 
-Open https://dash.cloudflare.com → Workers & Pages → register-lens → Settings → Variables and Secrets → Add.
+## What changed
 
-| Type | Variable name | Value |
-|---|---|---|
-| Secret | OPENAI_API_KEY | Your existing OpenAI API key |
-| Secret | ACCESS_PASSWORD | A new unique random password of at least 20 ASCII characters, generated with a password manager |
+- worker/app.mjs: Workers AI binding replaces the OpenAI API request; validates JSON, quote text and citation IDs; limits prompt size for the model's 24k context.
+- wrangler.jsonc: AI binding and Llama model configuration.
+- public/app.mjs and public/index.html: updated connection status and provider/privacy text.
+- tests/backend.test.mjs and tests/auth.test.mjs: Workers AI mock coverage and existing authentication checks.
 
-Click Deploy to apply the changes. ACCESS_PASSWORD is your website login password; it is separate from your OpenAI API key and Cloudflare password. Choose letters, numbers and punctuation; do not use non-ASCII characters for this prototype's browser login.
-
-### B. Terminal with hidden prompts
-
-```sh
-npx wrangler secret put OPENAI_API_KEY
-npx wrangler secret put ACCESS_PASSWORD
-```
-
-Each command prompts for the value interactively. Paste your API key only at the first prompt. Enter your new website password at the second prompt. Do not append a value to either command. Each secret command deploys an updated Worker version.
-
-## 5. Open the website and test AI
-
-Open the HTTPS workers.dev URL printed by deployment. The browser displays a sign-in prompt:
-
-- Username: `registerlens`
-- Password: the ACCESS_PASSWORD you just saved
-
-The status should say “AI configured”. This indicates that a key exists, not that billing or model access has been verified. The fictional sample loads automatically, using source-only search without spending API usage. Click Ask AI to make your first real model request. You should see a direct technical answer followed by clickable page citations and supporting quotes.
-
-To test your chip, add its text-based PDF manual, enter the correct chip and revision, then ask a question. Remove the sample or import your own PDF; the fictional sample is automatically replaced when real documents are added.
-
-The deployed URL is a separate Cloudflare copy. The chatgpt.site URL continues pointing to the earlier Sites deployment.
+The answer appears first; citations underneath open the relevant PDF page. Quote validation confirms a quote appears in the supplied source; it does not prove the model's interpretation is correct. No-evidence responses may omit citations.
 
 ## Troubleshooting
 
-- `npm` is not recognized: install Node.js and reopen your terminal.
-- Windows blocks `npm.ps1`: select Command Prompt as the terminal, or use `npm.cmd` and `npx.cmd` instead of npm and npx. No execution-policy changes are necessary.
-- “Setup incomplete”: ACCESS_PASSWORD is missing or shorter than 20 characters. Set it as a Secret and deploy.
-- Repeated sign-in prompt: username must be `registerlens`; check the ACCESS_PASSWORD value. Browsers cache Basic authentication; use a new private/incognito session after changing the password.
-- “API key not configured”: check the exact uppercase name OPENAI_API_KEY and deploy the secret change.
-- Key rejected: replace the API key secret with a valid key.
-- Usage or rate limit: check your API account's billing/quota and retry later. The app intentionally does not retry automatically and multiply costs.
-- Model access error: the default is gpt-4.1-mini. Change OPENAI_MODEL in wrangler.jsonc to a Responses API model that supports structured output and your account can access, then deploy again.
-- No useful answer: source retrieval is keyword-based. Try the exact register name, check the chip/revision scope, or add the relevant document.
+- AI binding missing: deploy the updated wrangler.jsonc alongside the updated backend.
+- Website says setup incomplete: set ACCESS_PASSWORD to at least 20 ASCII characters.
+- Provider error: check Workers AI usage, limits and model availability in Cloudflare.
+- Context too large: ask a more specific question or use source-only search. Serialized question, metadata and excerpts are limited conservatively to 20,000 UTF-8 bytes; oversized requests are not silently truncated.
+- Response could not be verified: the model returned invalid JSON, an unknown source ID or a quote not found in the passages. Retry or read the linked source pages using source-only search.
 
-## Privacy and limitations
+## Privacy and access
 
-All routes, including static files and APIs, pass through password verification. Do not change assets.run_worker_first=true. Do not deploy worker/app.mjs directly: worker/index.mjs is the authenticated entrypoint. Keep the website password private; anyone who has it can use the configured API key through the app. This is single-user prototype authentication, not enterprise identity management or a team-account system. Public URLs are reachable but content and model calls require the password. A random password is important; this package does not add a durable login-attempt limiter.
+All website and API routes remain password protected through worker/index.mjs. Keep assets.run_worker_first=true. This is a single-user prototype, without a durable login-attempt limiter or enterprise identity system.
 
-PDF binaries are kept in browser memory and disappear on refresh. Ask AI sends your question, metadata and up to six matching text excerpts to OpenAI through your Worker. Source-only search remains in the browser. There is no application database, prompt logging or persistent document storage. Model requests set store:false; this does not override provider retention policies. Do not send proprietary material unless you are authorized to use it with that provider.
+PDF binaries stay in browser memory. Ask AI sends the question, metadata and matching passages to Cloudflare Workers AI. Source-only search stays in the browser. The application does not persist prompts or answers. Provider data policies still apply.
 
-Citations are checked against supplied passages, but this does not guarantee factual accuracy. PDF tables, revision applicability and keyword retrieval remain unvalidated. No OCR is included. Always confirm register values against the original page.
+## Validation
 
-## Validation and future updates
+Run `npm ci`, `npm test`, and `npm run check` with Node 22 or later. Tests mock Workers AI and do not measure real model accuracy. The deployment dry-run does not make a live AI call. A real end-to-end AI check must be done after deployment to your Cloudflare account.
 
-```sh
-npm test
-npm run check
-npm run deploy
-```
-
-The checks cover request validation, missing API keys, provider errors, citation validation, retrieval scope, password protection, and static-asset authentication configuration. Live AI billing/model access must be tested after you configure your own key. Never upload node_modules, .dev.vars, .env or secret values to GitHub.
-
-## Official references
-
-- Secrets and dashboard instructions: https://developers.cloudflare.com/workers/configuration/secrets/
-- Asset bindings and run_worker_first: https://developers.cloudflare.com/workers/static-assets/binding/
-- Wrangler: https://developers.cloudflare.com/workers/wrangler/commands/
+References:
+- https://developers.cloudflare.com/workers-ai/platform/pricing/
+- https://developers.cloudflare.com/workers-ai/configuration/bindings/
+- https://developers.cloudflare.com/workers-ai/features/json-mode/
+- https://developers.cloudflare.com/workers-ai/models/llama-3.3-70b-instruct-fp8-fast/
