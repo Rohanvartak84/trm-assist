@@ -1,0 +1,9 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import worker from '../worker/index.mjs';import {readFileSync} from 'node:fs';
+const password='private-test-password-123456';
+const request=(path='/',auth)=>new Request('https://register-lens.example'+path,{headers:auth?{Authorization:'Basic '+btoa(auth)}:{}});
+test('missing and short passwords fail closed',async()=>{for(const value of [undefined,'short'])assert.equal((await worker.fetch(request(),{ACCESS_PASSWORD:value})).status,503)});
+test('all public and API paths require authentication',async()=>{for(const path of ['/','/app.mjs','/demo-trm.pdf','/api/status','/api/answer'])assert.equal((await worker.fetch(request(path),{ACCESS_PASSWORD:password})).status,401)});
+test('wrong credentials cannot reach assets',async()=>assert.equal((await worker.fetch(request('/','registerlens:wrong'),{ACCESS_PASSWORD:password,ASSETS:{fetch:()=>{throw Error('Unauthorized asset access')}}})).status,401));
+test('authenticated assets have private cache headers',async()=>{const r=await worker.fetch(request('/','registerlens:'+password),{ACCESS_PASSWORD:password,ASSETS:{fetch:()=>new Response('app')}});assert.equal(await r.text(),'app');assert.equal(r.headers.get('cache-control'),'no-store')});
+test('authenticated status never contains secrets',async()=>{const r=await worker.fetch(request('/api/status','registerlens:'+password),{ACCESS_PASSWORD:password,OPENAI_API_KEY:'private-api-key'});assert.deepEqual(await r.json(),{configured:true,model:'gpt-4.1-mini'})});
+test('configuration always runs authentication before static files',()=>{const config=JSON.parse(readFileSync('wrangler.jsonc','utf8'));assert.equal(config.assets.run_worker_first,true);assert.equal(config.main,'worker/index.mjs');assert.equal(config.preview_urls,false)});
